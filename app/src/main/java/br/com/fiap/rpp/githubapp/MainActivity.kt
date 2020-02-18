@@ -6,8 +6,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import br.com.fiap.rpp.githubapp.model.GithubUser
 import br.com.fiap.rpp.githubapp.service.GithubService
+import com.facebook.stetho.okhttp3.StethoInterceptor
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.activity_main.*
+import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -30,6 +32,7 @@ class MainActivity : AppCompatActivity() {
 
         val retrofit = Retrofit.Builder()
             .addConverterFactory(GsonConverterFactory.create())
+            .client(getOKHttp())
             .baseUrl("https://api.github.com/").build()
 
         val service = retrofit.create(GithubService::class.java)
@@ -38,6 +41,7 @@ class MainActivity : AppCompatActivity() {
             .enqueue(object : Callback<GithubUser>{
                 override fun onFailure(call: Call<GithubUser>, t: Throwable) {
                     Toast.makeText(this@MainActivity, t.message, Toast.LENGTH_SHORT).show()
+                    progreeBar.visibility = View.GONE
                 }
 
                 override fun onResponse(call: Call<GithubUser>, response: Response<GithubUser>) {
@@ -47,6 +51,10 @@ class MainActivity : AppCompatActivity() {
                         if (user != null) {
                             setupValueScreen(user)
                         }
+                    } else {
+                        Toast.makeText(this@MainActivity, "Erro: ${response.code()}",
+                            Toast.LENGTH_SHORT).show()
+                        progreeBar.visibility = View.GONE
                     }
                 }
 
@@ -57,7 +65,14 @@ class MainActivity : AppCompatActivity() {
 
         Picasso.get().load(githubUser.avatar).into(githubImage)
         userName.text = githubUser.userName
+        userBio.text = githubUser.bio
 
         progreeBar.visibility = View.GONE
+    }
+
+    private fun getOKHttp(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addNetworkInterceptor(StethoInterceptor())
+            .build()
     }
 }
